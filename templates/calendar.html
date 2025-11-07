@@ -1,0 +1,277 @@
+<!-- CALENDÁRIO INTERATIVO (CLIENTE OU ADMIN) -->
+<div id="calendar"></div>
+
+<!-- Modal de novo agendamento -->
+<div class="modal fade" id="addEventModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="addEventForm">
+        <input type="hidden" name="editando_id" id="editando_id">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Novo Agendamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Cliente</label>
+            <select class="form-select" name="cliente_id" id="cliente_id" required>
+              <option value="">Selecione</option>
+              {% for c in clientes %}
+              <option value="{{ c[0] }}">{{ c[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Unidade</label>
+            <select class="form-select" name="unidade_id" id="unidade_id" required>
+              <option value="">Selecione o cliente</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Técnico</label>
+            <select class="form-select" name="tecnico_id" id="tecnico_id" required>
+              {% for t in tecnicos %}
+              <option value="{{ t[0] }}">{{ t[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Data</label>
+            <input type="date" class="form-control" name="data" id="data" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status" id="status" required>
+              <option value="Pendente Conf.">Pendente</option>
+              <option value="Confirmado">Confirmado</option>
+              <option value="Cancelado">Cancelado</option>
+              <option value="Reagendado">Reagendado</option>
+            </select>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Observações</label>
+            <input type="text" class="form-control" name="observacoes" id="observacoes" placeholder="Comentários adicionais">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Salvar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de visualização -->
+<div class="modal fade" id="viewEventModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title">Detalhes da Visita</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="eventDetails"></div>
+      <div class="modal-footer">
+        <button id="editEventBtn" class="btn btn-primary">Editar</button>
+        <button id="deleteEventBtn" class="btn btn-danger">Excluir</button>
+        <button id="duplicateEventBtn" class="btn btn-warning text-white">Duplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FullCalendar -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('calendar');
+  const userType = "{{ session['tipo'] }}";
+  const clienteIdSessao = "{{ session.get('cliente_id') }}";
+
+  const clienteSelect = document.getElementById('cliente_id');
+  const unidadeSelect = document.getElementById('unidade_id');
+  const tecnicoSelect = document.getElementById('tecnico_id');
+  const dataInput = document.getElementById('data');
+  const statusSelect = document.getElementById('status');
+  const obsInput = document.getElementById('observacoes');
+  const editandoId = document.getElementById('editando_id');
+
+  const viewModalEl = document.getElementById('viewEventModal');
+  const addModalEl = document.getElementById('addEventModal');
+  let eventoSelecionado = null;
+  let eventosURL = '/api/agendamentos';
+
+  // ===========================
+  // Inicializa o calendário
+  // ===========================
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: 'pt-br',
+    themeSystem: 'bootstrap5',
+    height: 'auto',
+    initialView: 'dayGridMonth',
+    selectable: userType === 'admin',
+    events: eventosURL,
+
+    eventContent: function(arg) {
+      const e = arg.event.extendedProps;
+      if (userType === 'cliente' && e.cliente_id != clienteIdSessao) {
+        return { html: `<div class='text-muted small'>Data indisponível</div>` };
+      }
+      return { html: `<div>${arg.event.title}</div>` };
+    },
+
+    eventClick: function(info) {
+      const e = info.event.extendedProps;
+      if (userType === 'cliente' && e.cliente_id != clienteIdSessao) return;
+
+      eventoSelecionado = {
+        id: info.event.id,
+        cliente: e.cliente,
+        unidade: e.unidade,
+        tecnico: e.tecnico,
+        status: e.status,
+        data: info.event.startStr,
+        observacoes: e.observacoes
+      };
+
+      document.getElementById('eventDetails').innerHTML = `
+        <b>Cliente:</b> ${e.cliente}<br>
+        <b>Unidade:</b> ${e.unidade}<br>
+        <b>Técnico:</b> ${e.tecnico}<br>
+        <b>Status:</b> ${e.status}<br>
+        <b>Data:</b> ${info.event.startStr}<br>
+        <b>Obs:</b> ${e.observacoes || ''}<br>
+      `;
+
+      new bootstrap.Modal(viewModalEl).show();
+    },
+
+    dateClick: function(info) {
+      if (userType === 'cliente') return;
+      editandoId.value = '';
+      dataInput.value = info.dateStr;
+      new bootstrap.Modal(addModalEl).show();
+    }
+  });
+
+  calendar.render();
+
+  // ===========================
+  // Atualizar calendário via filtro de técnico
+  // ===========================
+  window.addEventListener('atualizarCalendario', e => {
+    const novaURL = e.detail.url;
+    calendar.removeAllEvents();
+    calendar.setOption('events', novaURL);
+    calendar.refetchEvents();
+  });
+
+  // ===========================
+  // Atualiza unidades conforme cliente
+  // ===========================
+  clienteSelect.addEventListener('change', function() {
+    const clienteId = this.value;
+    unidadeSelect.innerHTML = '<option>Carregando...</option>';
+    fetch(`/api/unidades/${clienteId}`)
+      .then(r => r.json())
+      .then(data => {
+        unidadeSelect.innerHTML = '<option value="">Selecione</option>';
+        data.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u[0];
+          opt.textContent = u[1];
+          unidadeSelect.appendChild(opt);
+        });
+      });
+  });
+
+  // ===========================
+  // Submeter novo ou editar
+  // ===========================
+  document.getElementById('addEventForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const rota = editandoId.value
+      ? `/update_agendamento/${editandoId.value}`
+      : '/add_agendamento';
+
+    fetch(rota, { method: 'POST', body: formData })
+      .then(res => res.json())
+      .then(() => {
+        bootstrap.Modal.getInstance(addModalEl).hide();
+        calendar.refetchEvents();
+      });
+  });
+
+  // ===========================
+  // Botão Editar
+  // ===========================
+  document.getElementById('editEventBtn').addEventListener('click', () => {
+    if (!eventoSelecionado) return;
+    bootstrap.Modal.getInstance(viewModalEl).hide();
+
+    editandoId.value = eventoSelecionado.id;
+    dataInput.value = eventoSelecionado.data;
+    statusSelect.value = eventoSelecionado.status;
+    obsInput.value = eventoSelecionado.observacoes || '';
+
+    [...clienteSelect.options].forEach(opt => {
+      if (opt.textContent === eventoSelecionado.cliente) opt.selected = true;
+    });
+    [...tecnicoSelect.options].forEach(opt => {
+      if (opt.textContent === eventoSelecionado.tecnico) opt.selected = true;
+    });
+
+    const clienteSelecionado = clienteSelect.value;
+    fetch(`/api/unidades/${clienteSelecionado}`)
+      .then(r => r.json())
+      .then(data => {
+        unidadeSelect.innerHTML = '';
+        data.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u[0];
+          opt.textContent = u[1];
+          if (u[1] === eventoSelecionado.unidade) opt.selected = true;
+          unidadeSelect.appendChild(opt);
+        });
+      });
+
+    new bootstrap.Modal(addModalEl).show();
+  });
+
+  // ===========================
+  // Botão Excluir
+  // ===========================
+  document.getElementById('deleteEventBtn').addEventListener('click', () => {
+    if (!eventoSelecionado) return;
+    if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
+
+    fetch(`/delete_agendamento/${eventoSelecionado.id}`, { method: 'DELETE' })
+      .then(res => res.json())
+      .then(() => {
+        bootstrap.Modal.getInstance(viewModalEl).hide();
+        calendar.refetchEvents();
+      });
+  });
+
+  // ===========================
+  // Botão Duplicar
+  // ===========================
+  document.getElementById('duplicateEventBtn').addEventListener('click', () => {
+    if (!eventoSelecionado) return;
+    const novaData = prompt("Informe a nova data para duplicar (AAAA-MM-DD):");
+    if (!novaData) return;
+
+    const formData = new FormData();
+    formData.append("data", novaData);
+
+    fetch(`/duplicate_agendamento/${eventoSelecionado.id}`, { method: 'POST', body: formData })
+      .then(res => res.json())
+      .then(() => {
+        bootstrap.Modal.getInstance(viewModalEl).hide();
+        calendar.refetchEvents();
+      });
+  });
+});
+</script>

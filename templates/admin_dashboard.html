@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-primary">👑 Painel Administrativo</h3>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger fw-semibold">Sair</a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- CLIENTES -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white fw-bold">Cadastro de Clientes</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_cliente_route') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="nome" class="form-control" placeholder="Nome do cliente" required>
+                            <button type="submit" class="btn btn-success">Salvar</button>
+                        </div>
+                    </form>
+
+                    <ul class="list-group" style="max-height: 250px; overflow-y:auto;">
+                        {% for c in clientes %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ c[1] }}</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarCliente({{ c[0] }}, '{{ c[1] }}')">✏️</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="excluirCliente({{ c[0] }})">🗑️</button>
+                                </div>
+                            </li>
+                        {% else %}
+                            <li class="list-group-item text-muted">Nenhum cliente cadastrado</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- UNIDADES -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white fw-bold">Cadastro de Unidades</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_unidade_route') }}" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" name="nome" class="form-control" placeholder="Nome da unidade" required>
+                            </div>
+                            <div class="col-md-6">
+                                <select name="cliente_id" class="form-select" required>
+                                    <option value="">Cliente vinculado</option>
+                                    {% for c in clientes %}
+                                        <option value="{{ c[0] }}">{{ c[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mt-2">Salvar Unidade</button>
+                    </form>
+
+                    <ul class="list-group" style="max-height: 250px; overflow-y:auto;">
+                        {% for u in unidades %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ u[1] }} <small class="text-muted">({{ u[2] }})</small></span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarUnidade({{ u[0] }}, '{{ u[1] }}', '{{ u[2] }}')">✏️</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="excluirUnidade({{ u[0] }})">🗑️</button>
+                                </div>
+                            </li>
+                        {% else %}
+                            <li class="list-group-item text-muted">Nenhuma unidade cadastrada</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- TÉCNICOS -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white fw-bold">Cadastro de Técnicos</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_tecnico_route') }}">
+                        <div class="input-group">
+                            <input type="text" name="nome" class="form-control" placeholder="Nome do técnico" required>
+                            <button type="submit" class="btn btn-success">Salvar</button>
+                        </div>
+                    </form>
+                    <ul class="list-group list-group-flush mt-3" style="max-height: 180px; overflow-y:auto;">
+                        {% for t in tecnicos %}
+                            <li class="list-group-item">{{ t[1] }}</li>
+                        {% else %}
+                            <li class="list-group-item text-muted">Nenhum técnico cadastrado</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- USUÁRIOS -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white fw-bold">Cadastro de Usuários</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_usuario_route') }}">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" name="nome" class="form-control" placeholder="Nome do usuário" required>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="codigo" class="form-control" placeholder="Código" required>
+                            </div>
+                            <div class="col-md-3">
+                                <select name="tipo" class="form-select" required>
+                                    <option value="cliente">Cliente</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <select name="cliente_id" class="form-select">
+                                <option value="">Vincular a cliente (opcional)</option>
+                                {% for c in clientes %}
+                                    <option value="{{ c[0] }}">{{ c[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mt-2">Salvar Usuário</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CALENDÁRIO -->
+    <div class="card mt-5 shadow-sm border-0">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>📅 Calendário de Agendamentos</span>
+            <div class="d-flex align-items-center">
+                <label for="filtroTecnico" class="me-2 mb-0">Filtrar por técnico:</label>
+                <select id="filtroTecnico" class="form-select form-select-sm" style="width: 220px;">
+                    <option value="">Todos os técnicos</option>
+                    {% for t in tecnicos %}
+                        <option value="{{ t[0] }}">{{ t[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            {% include "calendar.html" %}
+        </div>
+    </div>
+</div>
+
+<!-- MODAIS -->
+<div class="modal fade" id="editClienteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Editar Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editClienteId">
+        <input type="text" id="editClienteNome" class="form-control" placeholder="Nome do cliente">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" onclick="salvarCliente()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editUnidadeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Editar Unidade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editUnidadeId">
+        <input type="text" id="editUnidadeNome" class="form-control mb-2" placeholder="Nome da unidade">
+        <select id="editUnidadeCliente" class="form-select">
+          {% for c in clientes %}
+            <option value="{{ c[0] }}">{{ c[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" onclick="salvarUnidade()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JS -->
+<script>
+function editarCliente(id, nome) {
+  document.getElementById('editClienteId').value = id;
+  document.getElementById('editClienteNome').value = nome;
+  new bootstrap.Modal(document.getElementById('editClienteModal')).show();
+}
+
+function salvarCliente() {
+  const id = document.getElementById('editClienteId').value;
+  const nome = document.getElementById('editClienteNome').value;
+  fetch(`/update_cliente/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `nome=${nome}`
+  }).then(() => location.reload());
+}
+
+function excluirCliente(id) {
+  if (!confirm("Deseja realmente excluir este cliente?")) return;
+  fetch(`/delete_cliente/${id}`, { method: 'DELETE' })
+    .then(() => location.reload());
+}
+
+function editarUnidade(id, nome, cliente) {
+  document.getElementById('editUnidadeId').value = id;
+  document.getElementById('editUnidadeNome').value = nome;
+  document.getElementById('editUnidadeCliente').value = cliente;
+  new bootstrap.Modal(document.getElementById('editUnidadeModal')).show();
+}
+
+function salvarUnidade() {
+  const id = document.getElementById('editUnidadeId').value;
+  const nome = document.getElementById('editUnidadeNome').value;
+  const cliente_id = document.getElementById('editUnidadeCliente').value;
+  fetch(`/update_unidade/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `nome=${nome}&cliente_id=${cliente_id}`
+  }).then(() => location.reload());
+}
+
+function excluirUnidade(id) {
+  if (!confirm("Deseja realmente excluir esta unidade?")) return;
+  fetch(`/delete_unidade/${id}`, { method: 'DELETE' })
+    .then(() => location.reload());
+}
+
+// 🎯 Filtro de técnico para o calendário
+document.getElementById('filtroTecnico').addEventListener('change', function() {
+  const tecnicoId = this.value;
+  const url = tecnicoId ? `/api/agendamentos?tecnico_id=${tecnicoId}` : '/api/agendamentos';
+  window.dispatchEvent(new CustomEvent('atualizarCalendario', { detail: { url } }));
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h3 class="fw-bold mb-4">📌 Novo Agendamento</h3>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('add_agendamento') }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Cliente</label>
+                    <select name="cliente" class="form-select" required>
+                        <option value="">Selecione o cliente</option>
+                        {% for c in clientes %}
+                            <option value="{{ c[0] }}">{{ c[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Técnico</label>
+                    <select name="tecnico" class="form-select" required>
+                        <option value="">Selecione o técnico</option>
+                        {% for t in tecnicos %}
+                            <option value="{{ t[0] }}">{{ t[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Datas da Visita</label>
+                <input type="date" id="data" class="form-control mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarData()">Adicionar Data</button>
+                    <small class="text-muted">Você pode adicionar várias datas</small>
+                </div>
+                <ul id="listaDatas" class="list-group mt-2"></ul>
+                <input type="hidden" name="datas[]" id="datasSelecionadas">
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" required>
+                        <option value="Pendente Conf.">Pendente Confirmação</option>
+                        <option value="Confirmado">Confirmado</option>
+                        <option value="Cancelado">Cancelado</option>
+                        <option value="Reagendado">Reagendado</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Observações</label>
+                    <input type="text" name="observacoes" class="form-control" placeholder="Comentários adicionais">
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">Salvar Agendamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let datasSelecionadas = [];
+
+function adicionarData() {
+    const input = document.getElementById('data');
+    const lista = document.getElementById('listaDatas');
+    const hidden = document.getElementById('datasSelecionadas');
+
+    if (input.value && !datasSelecionadas.includes(input.value)) {
+        datasSelecionadas.push(input.value);
+
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `${input.value} <button type="button" class="btn btn-sm btn-danger" onclick="removerData('${input.value}')">Remover</button>`;
+        lista.appendChild(li);
+
+        hidden.value = datasSelecionadas;
+        input.value = '';
+    }
+}
+
+function removerData(data) {
+    datasSelecionadas = datasSelecionadas.filter(d => d !== data);
+    document.getElementById('datasSelecionadas').value = datasSelecionadas;
+    const lista = document.getElementById('listaDatas');
+    lista.innerHTML = '';
+    datasSelecionadas.forEach(d => {
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `${d} <button type="button" class="btn btn-sm btn-danger" onclick="removerData('${d}')">Remover</button>`;
+        lista.appendChild(li);
+    });
+}
+</script>
+
+{% endblock %}

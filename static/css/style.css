@@ -1,0 +1,187 @@
+/* ===============================
+   ESTILO GERAL
+================================== */
+body {
+    background-color: #f7f9fb;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+footer {
+    font-size: 0.85rem;
+}
+
+/* ===============================
+   FULLCALENDAR
+================================== */
+#calendar {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.fc-toolbar-title {
+    font-size: 1.5rem !important;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.fc-daygrid-day-number {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.fc-event {
+    font-size: 0.8rem;
+    border-radius: 6px;
+    padding: 2px 5px;
+    color: #fff;
+    border: none !important;
+}
+
+/* ===============================
+   CORES DOS STATUS
+================================== */
+.fc-event[data-status="Pendente Conf."] {
+    background-color: #f1c40f !important;
+}
+
+.fc-event[data-status="Confirmado"] {
+    background-color: #27ae60 !important;
+}
+
+.fc-event[data-status="Cancelado"] {
+    background-color: #e74c3c !important;
+}
+
+.fc-event[data-status="Reagendado"] {
+    background-color: #e67e22 !important;
+}
+
+.fc-event[data-status="Data indisponível"] {
+    background-color: #95a5a6 !important;
+}
+
+/* ===============================
+   MODAIS
+================================== */
+.modal-header {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.modal-footer {
+    border-top: 2px solid #dee2e6;
+}
+
+.modal-title {
+    font-weight: 600;
+}
+
+/* ===============================
+   BOTÕES PERSONALIZADOS
+================================== */
+.btn {
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: scale(1.03);
+}
+
+.btn-success {
+    background-color: #27ae60;
+    border: none;
+}
+
+.btn-success:hover {
+    background-color: #229954;
+}
+
+.btn-primary {
+    background-color: #2980b9;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #2471a3;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-warning {
+    background-color: #e67e22;
+    border: none;
+    color: #fff;
+}
+
+.btn-warning:hover {
+    background-color: #ca6f1e;
+}
+
+/* ===============================
+   FORMULÁRIOS
+================================== */
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    font-size: 0.95rem;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 4px rgba(52, 152, 219, 0.4);
+    border-color: #3498db;
+}
+
+/* ===============================
+   SCROLLS
+================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #ecf0f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #b2bec3;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #95a5a6;
+}
+
+/* ===============================
+   ALERTAS
+================================== */
+.alert {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* ===============================
+   RESPONSIVIDADE
+================================== */
+@media (max-width: 768px) {
+    .fc-toolbar-title {
+        font-size: 1.2rem !important;
+    }
+
+    .btn {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+}
