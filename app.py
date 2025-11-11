@@ -260,11 +260,9 @@ def api_agendamentos():
     tecnico_id = request.args.get('tecnico_id')
     eventos = get_all_agendamentos(tecnico_id=tecnico_id) if tecnico_id else get_all_agendamentos()
 
-    # Admin vê tudo
     if tipo == 'admin':
         return jsonify(eventos)
 
-    # Cliente vê só seus eventos
     eventos_filtrados = []
     for ev in eventos:
         if ev['extendedProps']['cliente_id'] == cliente_id_sessao:
@@ -283,6 +281,21 @@ def api_agendamentos():
 def api_unidades(cliente_id):
     unidades = get_unidades_por_cliente(cliente_id)
     return jsonify(unidades)
+
+# =====================================================
+# TESTE DE CONEXÃO COM O POSTGRESQL
+# =====================================================
+@app.route("/teste_db")
+def teste_db():
+    try:
+        conn = connect()
+        c = conn.cursor()
+        c.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+        tabelas = [row[0] for row in c.fetchall()]
+        conn.close()
+        return f"✅ Conexão bem-sucedida! Tabelas encontradas: {', '.join(tabelas)}"
+    except Exception as e:
+        return f"❌ Erro ao conectar ao banco: {e}"
 
 # =====================================================
 # EXECUÇÃO
