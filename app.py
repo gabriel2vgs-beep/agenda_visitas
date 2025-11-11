@@ -24,12 +24,15 @@ def login():
         user = get_usuario_por_codigo(codigo)
 
         if user:
+            # Ordem correta das colunas no PostgreSQL:
+            # (id, nome, email, senha, tipo, cliente_id, tecnico_id, codigo_acesso)
             session['usuario_id'] = user[0]
             session['nome'] = user[1]
-            session['codigo'] = user[2]
-            session['tipo'] = user[3]
-            session['cliente_id'] = user[4]
-            if user[3] == 'admin':
+            session['codigo'] = user[7]
+            session['tipo'] = user[4]
+            session['cliente_id'] = user[5]
+
+            if user[4] == 'admin':
                 return redirect(url_for('index'))
             else:
                 return redirect(url_for('agenda_cliente'))
@@ -58,7 +61,6 @@ def index():
     unidades = get_all_unidades()
     tecnicos = get_all_tecnicos()
 
-    # Buscar todos os usuários com nome do cliente vinculado
     conn = connect()
     c = conn.cursor()
     c.execute("""
@@ -140,7 +142,7 @@ def update_cliente_route(id):
     nome = request.form['nome']
     conn = connect()
     c = conn.cursor()
-    c.execute("UPDATE clientes SET nome=? WHERE id=?", (nome, id))
+    c.execute("UPDATE clientes SET nome=%s WHERE id=%s", (nome, id))
     conn.commit()
     conn.close()
     flash("Cliente atualizado com sucesso!", "success")
@@ -151,7 +153,7 @@ def update_cliente_route(id):
 def delete_cliente_route(id):
     conn = connect()
     c = conn.cursor()
-    c.execute("DELETE FROM clientes WHERE id=?", (id,))
+    c.execute("DELETE FROM clientes WHERE id=%s", (id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -163,7 +165,7 @@ def update_unidade_route(id):
     cliente_id = request.form['cliente_id']
     conn = connect()
     c = conn.cursor()
-    c.execute("UPDATE unidades SET nome=?, cliente_id=? WHERE id=?", (nome, cliente_id, id))
+    c.execute("UPDATE unidades SET nome=%s, cliente_id=%s WHERE id=%s", (nome, cliente_id, id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -173,7 +175,7 @@ def update_unidade_route(id):
 def delete_unidade_route(id):
     conn = connect()
     c = conn.cursor()
-    c.execute("DELETE FROM unidades WHERE id=?", (id,))
+    c.execute("DELETE FROM unidades WHERE id=%s", (id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -186,8 +188,8 @@ def update_usuario_route(id):
     c = conn.cursor()
     c.execute("""
         UPDATE usuarios
-        SET nome=?, codigo_acesso=?, tipo=?, cliente_id=?
-        WHERE id=?
+        SET nome=%s, codigo_acesso=%s, tipo=%s, cliente_id=%s
+        WHERE id=%s
     """, (data['nome'], data['codigo'], data['tipo'], data['cliente_id'] or None, id))
     conn.commit()
     conn.close()
@@ -198,13 +200,13 @@ def update_usuario_route(id):
 def delete_usuario_route(id):
     conn = connect()
     c = conn.cursor()
-    c.execute("DELETE FROM usuarios WHERE id=?", (id,))
+    c.execute("DELETE FROM usuarios WHERE id=%s", (id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
 
 # =====================================================
-# AGENDAMENTOS (com filtro por técnico)
+# AGENDAMENTOS
 # =====================================================
 @app.route('/add_agendamento', methods=['POST'])
 def add_agendamento_route():
@@ -251,7 +253,7 @@ def duplicate_agendamento_route(ag_id):
     return jsonify({'success': False}), 404
 
 # =====================================================
-# 🔧 CORRIGIDO: API DE AGENDAMENTOS
+# API DE AGENDAMENTOS
 # =====================================================
 @app.route('/api/agendamentos')
 def api_agendamentos():
