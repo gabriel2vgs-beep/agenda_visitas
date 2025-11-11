@@ -1,17 +1,35 @@
+import os
 import sqlite3
+import psycopg2
+from urllib.parse import urlparse
 
 DB_NAME = "agenda.db"
 
-# ---------------------------
-# CONEXÃO
-# ---------------------------
+# =====================================================
+# CONEXÃO AUTOMÁTICA (PostgreSQL no Render / SQLite local)
+# =====================================================
 def connect():
-    return sqlite3.connect(DB_NAME)
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        result = urlparse(db_url)
+        return psycopg2.connect(
+            database=result.path[1:],
+            user=result.username,
+            password=result.password,
+            host=result.hostname,
+            port=result.port
+        )
+    else:
+        return sqlite3.connect(DB_NAME)
 
-# ---------------------------
-# INICIALIZAÇÃO DO BANCO
-# ---------------------------
+# =====================================================
+# INICIALIZAÇÃO DO BANCO (somente SQLite local)
+# =====================================================
 def init_db():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        # No PostgreSQL, o schema já é criado manualmente
+        return
     conn = connect()
     cursor = conn.cursor()
 
@@ -23,7 +41,7 @@ def init_db():
         )
     """)
 
-    # UNIDADES (vinculadas a clientes)
+    # UNIDADES
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS unidades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +51,7 @@ def init_db():
         )
     """)
 
-    # USUÁRIOS (admin e clientes)
+    # USUÁRIOS
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +71,7 @@ def init_db():
         )
     """)
 
-    # AGENDAMENTOS (com unidade vinculada)
+    # AGENDAMENTOS
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS agendamentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,13 +90,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-# ---------------------------
+# =====================================================
 # CLIENTES
-# ---------------------------
+# =====================================================
 def add_cliente(nome):
     conn = connect()
     c = conn.cursor()
-    c.execute("INSERT INTO clientes (nome) VALUES (?)", (nome,))
+    query = "INSERT INTO clientes (nome) VALUES (%s)" if is_postgres() else "INSERT INTO clientes (nome) VALUES (?)"
+    c.execute(query, (nome,))
     conn.commit()
     conn.close()
 
@@ -90,20 +109,22 @@ def get_all_clientes():
     conn.close()
     return data
 
-# ---------------------------
+# =====================================================
 # UNIDADES
-# ---------------------------
+# =====================================================
 def add_unidade(nome, cliente_id):
     conn = connect()
     c = conn.cursor()
-    c.execute("INSERT INTO unidades (nome, cliente_id) VALUES (?, ?)", (nome, cliente_id))
+    query = "INSERT INTO unidades (nome, cliente_id) VALUES (%s, %s)" if is_postgres() else "INSERT INTO unidades (nome, cliente_id) VALUES (?, ?)"
+    c.execute(query, (nome, cliente_id))
     conn.commit()
     conn.close()
 
 def get_unidades_por_cliente(cliente_id):
     conn = connect()
     c = conn.cursor()
-    c.execute("SELECT * FROM unidades WHERE cliente_id = ? ORDER BY nome", (cliente_id,))
+    query = "SELECT * FROM unidades WHERE cliente_id = %s ORDER BY nome" if is_postgres() else "SELECT * FROM unidades WHERE cliente_id = ? ORDER BY nome"
+    c.execute(query, (cliente_id,))
     data = c.fetchall()
     conn.close()
     return data
@@ -121,34 +142,40 @@ def get_all_unidades():
     conn.close()
     return data
 
-# ---------------------------
+# =====================================================
 # USUÁRIOS
-# ---------------------------
+# =====================================================
 def add_usuario(nome, codigo_acesso, tipo, cliente_id=None):
     conn = connect()
     c = conn.cursor()
-    c.execute("""
+    query = """
+        INSERT INTO usuarios (nome, codigo_acesso, tipo, cliente_id)
+        VALUES (%s, %s, %s, %s)
+    """ if is_postgres() else """
         INSERT INTO usuarios (nome, codigo_acesso, tipo, cliente_id)
         VALUES (?, ?, ?, ?)
-    """, (nome, codigo_acesso, tipo, cliente_id))
+    """
+    c.execute(query, (nome, codigo_acesso, tipo, cliente_id))
     conn.commit()
     conn.close()
 
 def get_usuario_por_codigo(codigo):
     conn = connect()
     c = conn.cursor()
-    c.execute("SELECT * FROM usuarios WHERE codigo_acesso = ?", (codigo,))
+    query = "SELECT * FROM usuarios WHERE codigo_acesso = %s" if is_postgres() else "SELECT * FROM usuarios WHERE codigo_acesso = ?"
+    c.execute(query, (codigo,))
     user = c.fetchone()
     conn.close()
     return user
 
-# ---------------------------
+# =====================================================
 # TÉCNICOS
-# ---------------------------
+# =====================================================
 def add_tecnico(nome):
     conn = connect()
     c = conn.cursor()
-    c.execute("INSERT INTO tecnicos (nome) VALUES (?)", (nome,))
+    query = "INSERT INTO tecnicos (nome) VALUES (%s)" if is_postgres() else "INSERT INTO tecnicos (nome) VALUES (?)"
+    c.execute(query, (nome,))
     conn.commit()
     conn.close()
 
@@ -160,16 +187,20 @@ def get_all_tecnicos():
     conn.close()
     return data
 
-# ---------------------------
+# =====================================================
 # AGENDAMENTOS
-# ---------------------------
+# =====================================================
 def add_agendamento(cliente_id, unidade_id, tecnico_id, data, status, observacoes):
     conn = connect()
     c = conn.cursor()
-    c.execute("""
+    query = """
+        INSERT INTO agendamentos (cliente_id, unidade_id, tecnico_id, data, status, observacoes)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """ if is_postgres() else """
         INSERT INTO agendamentos (cliente_id, unidade_id, tecnico_id, data, status, observacoes)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (cliente_id, unidade_id, tecnico_id, data, status, observacoes))
+    """
+    c.execute(query, (cliente_id, unidade_id, tecnico_id, data, status, observacoes))
     conn.commit()
     conn.close()
 
@@ -189,7 +220,7 @@ def get_all_agendamentos(tecnico_id=None):
     """
 
     if tecnico_id:
-        base_query += " WHERE t.id = ? ORDER BY a.data ASC"
+        base_query += " WHERE t.id = %s ORDER BY a.data ASC" if is_postgres() else " WHERE t.id = ? ORDER BY a.data ASC"
         c.execute(base_query, (tecnico_id,))
     else:
         base_query += " ORDER BY a.data ASC"
@@ -207,7 +238,6 @@ def get_all_agendamentos(tecnico_id=None):
             "Reagendado": "#e67e22"
         }.get(r[2], "#3498db")
 
-        # 🔧 Correção definitiva: título garantido
         title = f"{r[4]} - {r[5]}" if r[4] and r[5] else "Agendamento"
 
         events.append({
@@ -232,17 +262,30 @@ def get_all_agendamentos(tecnico_id=None):
 def update_agendamento(id, cliente_id, unidade_id, tecnico_id, status, observacoes):
     conn = connect()
     c = conn.cursor()
-    c.execute("""
+    query = """
+        UPDATE agendamentos
+        SET cliente_id = %s, unidade_id = %s, tecnico_id = %s, status = %s, observacoes = %s
+        WHERE id = %s
+    """ if is_postgres() else """
         UPDATE agendamentos
         SET cliente_id = ?, unidade_id = ?, tecnico_id = ?, status = ?, observacoes = ?
         WHERE id = ?
-    """, (cliente_id, unidade_id, tecnico_id, status, observacoes, id))
+    """
+    c.execute(query, (cliente_id, unidade_id, tecnico_id, status, observacoes, id))
     conn.commit()
     conn.close()
 
 def delete_agendamento(id):
     conn = connect()
     c = conn.cursor()
-    c.execute("DELETE FROM agendamentos WHERE id = ?", (id,))
+    query = "DELETE FROM agendamentos WHERE id = %s" if is_postgres() else "DELETE FROM agendamentos WHERE id = ?"
+    c.execute(query, (id,))
     conn.commit()
     conn.close()
+
+# =====================================================
+# UTILITÁRIO
+# =====================================================
+def is_postgres():
+    """Retorna True se o app estiver usando PostgreSQL (Render)"""
+    return bool(os.getenv("DATABASE_URL"))
